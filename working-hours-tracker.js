@@ -8,16 +8,16 @@
 const locale = "de_DE";
 
 // sets the name of the shortcut that redirects back to the homescreen (can be undefined)
-let shortcutNameHomeScreen = "hs";
+const shortcutNameHomeScreen = "hs";
 
 // when do you want to get the first notification on each day?
-let startOfDayNotifTime = "07:30";
+const startOfDayNotifTime = "07:30";
 
 // break time
-let breakOfDayNotifTime = "11:30";
+const breakOfDayNotifTime = "11:30";
 
 // until when you want to get notifications
-let endOfDayNotifTime = "15:30";
+const endOfDayNotifTime = "15:30";
 
 // working hours per day in h
 const honestDayWork = 8;
@@ -38,21 +38,22 @@ const df = new DateFormatter();
 df.useMediumDateStyle();
 df.locale = locale;
 
-let fm = FileManager.iCloud();
-let dir = fm.joinPath(fm.documentsDirectory(), "working-hours");
-let file = fm.joinPath(dir, "workinghours.json");
-let data = fm.fileExists(file) ? JSON.parse(fm.readString(file)) : JSON.parse('[]');
-let todaysDate = df.date(df.string(new Date()));
-let dataToday = (data.length > 0 && sameDay(todaysDate, df.date(data[0].date))) ? data[0] : JSON.parse("{}");
-let holidaysFile = fm.joinPath(dir, "holidays.json");
-let holidays = fm.fileExists(holidaysFile) ? JSON.parse(fm.readString(holidaysFile)) : JSON.parse('[]');
+const fm = FileManager.iCloud();
+const dir = fm.joinPath(fm.documentsDirectory(), "working-hours");
+const file = fm.joinPath(dir, "workinghours.json");
+const data = fm.fileExists(file) ? JSON.parse(fm.readString(file)) : JSON.parse('[]');
+const todaysDate = df.date(df.string(new Date()));
+const dataToday = (data.length > 0 && sameDay(todaysDate, df.date(data[0].date))) ? data[0] : JSON.parse("{}");
+const holidaysFile = fm.joinPath(dir, "holidays.json");
+const holidays = fm.fileExists(holidaysFile) ? JSON.parse(fm.readString(holidaysFile)) : JSON.parse('[]');
 
-if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryParameters.update) {
-	// build UI for updating data
-	let ui = new UITable();
-	ui.showSeparators = true;
+let ui = new UITable();
+ui.showSeparators = true;	
+let row, cell, state;
 	
-	let row = new UITableRow();
+if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
+	// build UI for updating data
+	row = new UITableRow()
 	row.isHeader = true;
 	row.height = 60;
 	row.addText("Update").centerAligned();
@@ -66,30 +67,36 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
 	row = new UITableRow();
 	row.addText("Set start time").centerAligned();
 	row.dismissOnSelect = false;
-	row.onSelect = () => ask(ui, todaysDate, dataToday, "", WorkDayStates.START);
+	row.onSelect = () => {
+		state = WorkDayStates.START;
+		ask();
+	};
 	ui.addRow(row);
 	
 	row = new UITableRow();
 	row.addText("Increase break time").centerAligned();
 	row.dismissOnSelect = false;
-	row.onSelect = () => updateAddTimeTable(file, data, todaysDate, dataToday, true, ui, dft);
+	row.onSelect = () => {
+		state = WorkDayStates.BREAK;
+		updateAddTimeTable(true);
+	};
 	ui.addRow(row);
 	
 	row = new UITableRow();
 	row.addText("Increase work time").centerAligned();
 	row.dismissOnSelect = false;
-	row.onSelect = () => updateAddTimeTable(file, data, todaysDate, dataToday, false, ui, dft);
+	row.onSelect = () => {
+		state = WorkDayStates.END;
+		updateAddTimeTable(false);
+	};
 	ui.addRow(row);
 	
 	await ui.present();
 	backToHomeScreen(shortcutNameHomeScreen);
 	Script.complete();
 } else if (config.runsInNotification || args.notification) {
-	let notif = args.notification;
-	let state = notif.userInfo["workDay"];
-	let ui = new UITable();
-	ui.showSeparators = true;
-	let row, cell;	
+	const notif = args.notification;
+	state = notif.userInfo["workDay"];
 	row = new UITableRow();
 	row.height = 60;
 	if (state !== WorkDayStates.HONEST_DAY_WORK) {
@@ -109,10 +116,11 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
 			}
 		} else {
 			// round minutes down to quarter
-			let date = roundDateDownToQuarterMinutes(new Date());
-			for (let i = -2; i <= 2; i++) {
-				let choice = date;
-				choice.setMinutes(date.getMinutes() + (i * 15));
+			let choice = roundDateDownToQuarterMinutes(new Date());
+			choice.setMinutes(choice.getMinutes() - 30);
+			choices.push(dft.string(choice));
+			for (let i = 1; i < 5; i++) {
+				choice.setMinutes(choice.getMinutes() + 15);
 				choices.push(dft.string(choice));
 			}
 		}
@@ -120,28 +128,28 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
 		choices.forEach((p) => {
 			row = new UITableRow();
 			row.height = 40;
-//			row.dismissOnSelect = true;
+			row.dismissOnSelect = !config.runsInNotification;
 			row.onSelect = () => {
 				ui.removeAllRows();
 				row = new UITableRow();
 				switch(state) {
 					case WorkDayStates.START: {
 						dataToday.start = p;
-						row.addText(`Started at ${p}`).centerAligned();
+						row.addText(`Started at ${p}.`).centerAligned();
 						break;
 					}
 					case WorkDayStates.BREAK: {
 						dataToday.breakDuration = p;
-						row.addText(`Breaked for ${p}`).centerAligned();
+						row.addText(`Breaked for ${p} min.`).centerAligned();
 						break;
 					}
 					case WorkDayStates.END: {
 						dataToday.end = p;
-						row.addText(`Finished at ${p}`).centerAligned();
+						row.addText(`Finished at ${p}.`).centerAligned();
 						break;
 					}
 				}
-				updateAndSave(file, data, dataToday);
+				updateAndSave();
 				ui.addRow(row);
 				ui.reload();
 			}
@@ -160,66 +168,70 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
 		row.dismissOnSelect = false;
 		switch(state) {
 			case WorkDayStates.START: {
-				row.onSelect = () => ask(ui, dataToday, "", state);
+				row.onSelect = () => ask();
 				row.addText("Add individual start time").centerAligned();
 				break;
 			}
 			case WorkDayStates.BREAK: {
-				row.onSelect = () => askBreak(ui, dataToday, "", true);
+				row.onSelect = () => askBreak(true);
 				row.addText("Add individual break time").centerAligned();
 				break;
 			}
 			case WorkDayStates.END: {
-				row.onSelect = () => ask(ui, dataToday, "", state);
+				row.onSelect = () => ask();
 				row.addText("Add individual finish time").centerAligned();
 				break;
 			}
 		}
 	} else {
-		row.addText(`You worked for ${getCurrentWorkingHours(dataToday, todaysDate, dft)}h today`).centerAligned();
+		row.addText(`You worked for ${getCurrentWorkingHours()}h today.`).centerAligned();
     }
 	ui.addRow(row);
 	await ui.present();
-	if (fm.modificationDate(file) > notif.deliveryDate || state === WorkDayStates.HONEST_DAY_WORK) {
+	if (!config.runsInNotification) {
+		if (fm.modificationDate(file).getTime() > notif.deliveryDate.getTime() || state === WorkDayStates.HONEST_DAY_WORK) {
+			Notification.removeDelivered([notif.identifier]);
+		}
+		backToHomeScreen(shortcutNameHomeScreen);	
+	} else if (state === WorkDayStates.HONEST_DAY_WORK) {
 		Notification.removeDelivered([notif.identifier]);
 	}
-	backToHomeScreen(shortcutNameHomeScreen);
 	Script.complete();
 } else if (config.runsInApp || config.runsInWidget || config.runsFromHomeScreen) {
 	// build widget
 	let widget = new ListWidget();
 	widget.backgroundColor = Color.lightGray()
 	
-	if (isWorkDay(todaysDate, holidays, df)) {
-		let pendingHDWNotif = (await Notification.allPending()).filter(notif => notif.threadIdentifier === Script.name() && notif.userInfo.workDay === WorkDayStates.HONEST_DAY_WORK);
+	if (isWorkDay()) {
 		// check if data for today exists and use it
 		if (JSON.stringify(dataToday) === '{}') {
 			// initialize data for today
-			console.log("add new data for today")
 			dataToday.date = df.string(todaysDate);
 			dataToday.start = DEFAULT_TIME;
 			dataToday.breakDuration = 0;
 			dataToday.end = DEFAULT_TIME;
 			data.unshift(dataToday);
-			console.log("dataToday:" + JSON.stringify(dataToday));
-			updateAndSave(file, data, dataToday);
+			console.log(`added data for today: ${JSON.stringify(dataToday)}`);
+			updateAndSave();
 			// schedule notifications
-			await createNotification(getDateTime(todaysDate, dft, startOfDayNotifTime), "Start your work day 💻", WorkDayStates.START);
-			await createNotification(getDateTime(todaysDate, dft, breakOfDayNotifTime), "Take a break 🥨", WorkDayStates.BREAK);
-			await createNotification(getDateTime(todaysDate, dft, endOfDayNotifTime), "Finish your work day 💻", WorkDayStates.END);
-		} else if (dataToday.start !== DEFAULT_TIME && dataToday.end === DEFAULT_TIME && pendingHDWNotif.length <= 0) {
-			let hdwNotifDate = getDateTime(todaysDate, dft, dataToday.start);
+			await createNotification(getDateTime(startOfDayNotifTime), "Start your work day 💻", WorkDayStates.START);
+			await createNotification(getDateTime(breakOfDayNotifTime), "Take a break 🥨", WorkDayStates.BREAK);
+			await createNotification(getDateTime(endOfDayNotifTime), "Finish your work day 💻", WorkDayStates.END);
+		} else {
+			let pendingHDWNotif = (await Notification.allPending()).filter(notif => notif.threadIdentifier === Script.name() && notif.userInfo.workDay === WorkDayStates.HONEST_DAY_WORK);
+			let hdwNotifDate = getDateTime(dataToday.start);
 			hdwNotifDate.setMinutes(hdwNotifDate.getMinutes() + (honestDayWork * 60) + dataToday.breakDuration);
-			await createNotification(hdwNotifDate, "💻 Honest Day Work 🎉", WorkDayStates.HONEST_DAY_WORK);
-		} else if (pendingHDWNotif.length >= 1) {
-			let hdwNotifDate = getDateTime(todaysDate, dft, dataToday.start);
-			hdwNotifDate.setMinutes(hdwNotifDate.getMinutes() + (honestDayWork * 60) + dataToday.breakDuration);
-			pendingHDWNotif = pendingHDWNotif.filter(notif => dft.string(notif.nextTriggerDate) !== dft.string(hdwNotifDate));
-			if (pendingHDWNotif.length > 0) {
-				await Notification.removePending(pendingHDWNotif.map(notif => notif.identifier));
+			if (dataToday.start !== DEFAULT_TIME && dataToday.end === DEFAULT_TIME && pendingHDWNotif.length <= 0 && new Date().getTime() < hdwNotifDate.getTime()) {
 				await createNotification(hdwNotifDate, "💻 Honest Day Work 🎉", WorkDayStates.HONEST_DAY_WORK);
+			} else if (pendingHDWNotif.length >= 1) {
+				pendingHDWNotif = pendingHDWNotif.filter(notif => dft.string(notif.nextTriggerDate) !== dft.string(hdwNotifDate));
+				if (pendingHDWNotif.length > 0) {
+					await Notification.removePending(pendingHDWNotif.map(notif => notif.identifier));
+					await createNotification(hdwNotifDate, "💻 Honest Day Work 🎉", WorkDayStates.HONEST_DAY_WORK);
+				}
 			}
 		}
+		
 	} else {
 		dataToday.date = df.string(todaysDate);
 		dataToday.start = DEFAULT_TIME;
@@ -228,21 +240,21 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
 	}
 	
 	// calculate working time and remaining working time for current month and current week, and working time for last 5 days
-	let hoursWorkedMonth = hasCurrentWorkingHours(dataToday, holidays, df) ? getCurrentWorkingHours(dataToday, todaysDate, dft) : 0;
-	let pastMonth = getDataForPastNDays(data, todaysDate, 31, df);
+	let hoursWorkedMonth = hasCurrentWorkingHours() ? getCurrentWorkingHours() : 0;
+	let pastMonth = getDataForPastNDays(31);
 	for (let pastDay of pastMonth) {
-		if (sameMonth(df.date(dataToday.date), df.date(pastDay.date))) {
-			hoursWorkedMonth += determineWorkingHours(pastDay, df, dft);
+		if (sameMonth(todaysDate, df.date(pastDay.date))) {
+			hoursWorkedMonth += determineWorkingHours(pastDay);
 		}
 	}  
-    let hoursMonth = determineWorkDaysMonth(todaysDate, holidays, df) * honestDayWork;
-	let hoursWorkedWeek = hasCurrentWorkingHours(dataToday, holidays, df) ? getCurrentWorkingHours(dataToday, todaysDate, dft) : 0;
+    let hoursMonth = determineWorkDaysMonth() * honestDayWork;
+	let hoursWorkedWeek = hasCurrentWorkingHours() ? getCurrentWorkingHours() : 0;
 	let hoursWorkedPastNDays = 0;
-	let pastWeek = getDataForPastNDays(pastMonth, todaysDate, 5, df);
+	let pastWeek = getDataForPastNDays(5);
 	for (let pastDay of pastWeek) {
-        let workingHoursPastDay = determineWorkingHours(pastDay, df, dft);
+        let workingHoursPastDay = determineWorkingHours(pastDay);
 		hoursWorkedPastNDays += workingHoursPastDay;
-		if (sameWeek(df.date(dataToday.date), df.date(pastDay.date))) {
+		if (sameWeek(todaysDate, df.date(pastDay.date))) {
 			hoursWorkedWeek += workingHoursPastDay;
 		}
 	}  
@@ -250,7 +262,7 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
 	
 	// display calculated work hours
     let workingHoursMonthStack= widget.addStack();
-    let workingHoursMonthText = workingHoursMonthStack.addText(`${df.date(dataToday.date).toLocaleString('default', { month: 'short' })}: `);  
+    let workingHoursMonthText = workingHoursMonthStack.addText(`${todaysDate.toLocaleString('default', { month: 'short' })}: `);  
     workingHoursMonthText.minimumScaleFactor = 0.7;
 	workingHoursMonthText = workingHoursMonthStack.addText(`${hoursWorkedMonth}/${hoursMonth}h`);  
     workingHoursMonthText.minimumScaleFactor = 0.7;
@@ -258,7 +270,7 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
         workingHoursMonthText.textColor = Color.blue();
     }
 	let workingHoursWeekStack= widget.addStack();
-	workingHoursWeekStack.addText(`KW${getWeek(df.date(dataToday.date))}: `);
+	workingHoursWeekStack.addText(`KW${getWeek(todaysDate)}: `);
 	let workingHoursWeekText = workingHoursWeekStack.addText(`${hoursWorkedWeek}h`);  
     if (hoursWorkedWeek >= 5 * honestDayWork) {
         workingHoursWeekText.textColor = Color.blue();
@@ -270,7 +282,7 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
 	
 	// display current working time
 	widget.addSpacer(10);
-	widget.addText(`${df.date(dataToday.date).toLocaleString('default', { weekday: 'short' })}, ${dataToday.date}`);
+	widget.addText(`${todaysDate.toLocaleString('default', { weekday: 'short' })}, ${dataToday.date}`);
 	widget.addSpacer(5);
 	let currentWorkDay = "";
 	if (dataToday.start !== DEFAULT_TIME){
@@ -286,8 +298,8 @@ if (isWorkDay(todaysDate, holidays, df) && args.queryParameters && args.queryPar
     currentWorkDayText.textColor = Color.darkGray()
     currentWorkDayText.minimumScaleFactor = 0.5
     let contentStack = widget.addStack();
-    if (hasCurrentWorkingHours(dataToday, holidays, df)) {
-        let currentWorkingHours = getCurrentWorkingHours(dataToday, todaysDate, dft);
+    if (hasCurrentWorkingHours()) {
+        let currentWorkingHours = getCurrentWorkingHours();
         var textColor;  
         contentStack.addImage(SFSymbol.named("brain.head.profile").image);
         if (currentWorkingHours >= honestDayWork) {  
@@ -331,14 +343,14 @@ function roundMinutesDownToQuarter(minutes) {
 }
 
 // update and save data
-function updateAndSave(file, data, dataToday) {
+function updateAndSave() {
 	console.log(`saving data with ${data.length} entries`);
 	data[0] = dataToday;
 	fm.writeString(file, JSON.stringify(data));
 }
 
 // gets data for past n days
-function getDataForPastNDays(data, todaysDate, n, df) {
+function getDataForPastNDays(n) {
 	if (data.length > 0 && sameDay(todaysDate, df.date(data[0].date))) {
 		return data.slice(1, n+1);
 	}
@@ -346,16 +358,16 @@ function getDataForPastNDays(data, todaysDate, n, df) {
 }
 
 // determines the working days for the current month
-function determineWorkDaysMonth(todaysDate, holidays, df) {
+function determineWorkDaysMonth() {
   let workDaysMonth = 0;
-  let lastDayMonth = todaysDate;
+  let lastDayMonth = df.date(df.string(todaysDate));
   lastDayMonth.setMonth(lastDayMonth.getMonth() + 1);
   lastDayMonth.setDate(0);
   let daysMonth = lastDayMonth.getDate();
   for (var i = 1; i <= daysMonth; i++) {    
-    var date = todaysDate;
+    var date = df.date(df.string(todaysDate));
     date.setDate(i);
-    if (isWorkDay(date, holidays, df)) {
+    if (isWorkDay(date)) {
        workDaysMonth++;
     }   
   }
@@ -363,18 +375,18 @@ function determineWorkDaysMonth(todaysDate, holidays, df) {
 }
 
 // determines the hours worked on a completed day
-function determineWorkingHours(dataForDay, df, dft) {
-	return (diffMinutes(getDateTime(df.date(dataForDay.date), dft, dataForDay.start), getDateTime(df.date(dataForDay.date), dft, dataForDay.end)) - dataForDay.breakDuration) / 60;  
+function determineWorkingHours(dataForDay) {
+	return (diffMinutes(getDateTime(dataForDay.start), getDateTime(dataForDay.end)) - dataForDay.breakDuration) / 60;  
 }
 
 // determines if you started working on the current day
-function hasCurrentWorkingHours(dataToday, holidays, df) {
-	return isWorkDay(df.date(dataToday.date), holidays, df) && dataToday.start !== DEFAULT_TIME;
+function hasCurrentWorkingHours() {
+	return isWorkDay() && dataToday.start !== DEFAULT_TIME;
 }
 
 // determines the hours worked on the current day
-function getCurrentWorkingHours(dataToday, todaysDate, dft) {
-	return (diffMinutes(getDateTime(todaysDate, dft, dataToday.start), (dataToday.end !== DEFAULT_TIME ? getDateTime(todaysDate, dft, dataToday.end) : roundDateDownToQuarterMinutes(new Date()))) - dataToday.breakDuration) / 60;
+function getCurrentWorkingHours() {
+	return (diffMinutes(getDateTime(dataToday.start), (dataToday.end !== DEFAULT_TIME ? getDateTime(dataToday.end) : roundDateDownToQuarterMinutes(new Date()))) - dataToday.breakDuration) / 60;
 }
 
 // determines the difference in minutes between 2 dates
@@ -403,18 +415,24 @@ function sameMonth(first, second) {
 }
 
 // gets today with hours and minutes set to the given time
-function getDateTime(date, dft, formattedTime) {
-	let d = date;
+function getDateTime(formattedTime) {
+	let d = df.date(df.string(todaysDate));
 	d.setHours(dft.date(formattedTime).getHours());
 	d.setMinutes(dft.date(formattedTime).getMinutes());
 	return d;
 }
 
 // determines the week number for the given date
-function getWeek(currentDate) {
-	var oneJan = new Date(currentDate.getFullYear(), 0, 1);
-	var numberOfDays = Math.floor((currentDate - oneJan) / (24 * 60 * 60 * 1000));
+function getWeek(d) {
+	var oneJan = new Date(d.getFullYear(), 0, 1);
+	var numberOfDays = Math.floor((d - oneJan) / (24 * 60 * 60 * 1000));
 	return Math.ceil((oneJan.getDay() + 1 + numberOfDays) / 7);
+}
+
+// determines if given date is a workday
+function isWorkDay(d) {
+	return true;
+	//return isWeekDay(d || todaysDate) && !isHoliday(d || todaysDate);
 }
 
 // determines if given date is a weekday
@@ -423,13 +441,8 @@ function isWeekDay(d) {
 		&& (d.getDay() < 6)); // day 6 is saturday
 }
 
-// determines if given date is a workday
-function isWorkDay(d, holidays, df) {
-	return isWeekDay(d) && !isHoliday(d, holidays, df);
-}
-
 // determines if given date is a holiday
-function isHoliday(d, holidays, df) {
+function isHoliday(d) {
 	let isAHoliday = false;
     for (let holiday of holidays) {      
         if (holiday.end == null) {
@@ -450,9 +463,9 @@ function isHoliday(d, holidays, df) {
 }
 
 // creates a new table with times to select
-function updateAddTimeTable(file, data, todaysDate, dataToday, isBreak, ui, dft) {
+function updateAddTimeTable(isBreak) {
 	ui.removeAllRows();
-	let row = new UITableRow();
+	row = new UITableRow();
 	row.isHeader = true;
 	row.height = 60;
 	row.addText(isBreak ? "Update break duration" : "Update finish time").centerAligned();
@@ -462,37 +475,39 @@ function updateAddTimeTable(file, data, todaysDate, dataToday, isBreak, ui, dft)
 	row.height = 10;
 	ui.addRow(row);
 	// row to add predefined time (from 15 min to 2 hours)
-	for (let i = 1; i <= 8; i++) {
-		let minutesToAdd = i * 15;
-		row = new UITableRow();
-		row.height = 40;
-		row.dismissOnSelect = true;
-		row.onSelect = () => {
-			if (isBreak) {
-				dataToday.breakDuration = dataToday.breakDuration + minutesToAdd;
-			} else {
-				let endTime = getDateTime(todaysDate, dft, dataToday.end);
-				endTime.setMinutes(endTime.getMinutes() + minutesToAdd);
-				dataToday.end = dft.string(endTime);
+	if (isBreak || dataToday.end !== DEFAULT_TIME) {
+		for (let i = 1; i <= 8; i++) {
+			let minutesToAdd = i * 15;
+			row = new UITableRow();
+			row.height = 40;
+			row.dismissOnSelect = true;
+			row.onSelect = () => {
+				if (isBreak) {
+					dataToday.breakDuration = dataToday.breakDuration + minutesToAdd;
+				} else {
+					let endTime = getDateTime(dataToday.end);
+					endTime.setMinutes(endTime.getMinutes() + minutesToAdd);
+					dataToday.end = dft.string(endTime);
+				}
+				updateAndSave();
 			}
-			updateAndSave(file, data, dataToday);
+			row.addText("Add " + minutesToAdd + " min").centerAligned();
+			ui.addRow(row);
 		}
-		row.addText("Add " + minutesToAdd + " min").centerAligned();
+		// row as spacer
+		row = new UITableRow();
+		row.height = 10;
 		ui.addRow(row);
 	}
-	// row as spacer
-	row = new UITableRow();
-	row.height = 10;
-	ui.addRow(row);
 	// row to enter individual time
 	row = new UITableRow();
 	row.height = 40;
 	row.dismissOnSelect = false;
 	if (isBreak) {
-		row.onSelect = () => askBreak(ui, dataToday, "", true);
+		row.onSelect = () => askBreak(true);
 		row.addText("Set individual break time").centerAligned();
 	} else {
-		row.onSelect = () => ask(ui, todaysDate, dataToday, "", WorkDayStates.END);
+		row.onSelect = () => ask();
 		row.addText("Set individual finish time").centerAligned();
 	}
 	ui.addRow(row);
@@ -500,10 +515,12 @@ function updateAddTimeTable(file, data, todaysDate, dataToday, isBreak, ui, dft)
 }
 
 // Creates a UI for entering break duration
-function askBreak(ui, dataToday, breakDuration, timeInMin) {
+function askBreak(timeInMin, breakDuration) {
+	breakDuration = breakDuration || "";
+	
 	ui.removeAllRows();
 	
-	let row = new UITableRow();
+	row = new UITableRow();
 	row.isHeader = true;
 	row.height = 60;
 	row.addText(`Enter break duration. So far you took a break for ${dataToday.breakDuration} min.`).centerAligned();
@@ -511,15 +528,15 @@ function askBreak(ui, dataToday, breakDuration, timeInMin) {
 	
 	row = new UITableRow();
 	ui.addRow(row);
-	let cell = row.addButton("min");
+	cell = row.addButton("min");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(ui, dataToday, breakDuration, true);
+		askBreak(true, breakDuration);
 	};
 	cell = row.addButton("h");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(ui, dataToday, breakDuration, false);
+		askBreak(false, breakDuration);
 	};
 	
 	row = new UITableRow();
@@ -536,7 +553,7 @@ function askBreak(ui, dataToday, breakDuration, timeInMin) {
 		cell = row.addButton("" + i);
 		cell.centerAligned();
 		cell.onTap = () => {
-			askBreak(ui, dataToday, "" + breakDuration + j, timeInMin);
+			askBreak(timeInMin, "" + breakDuration + j);
 		};
 	}
 	
@@ -546,29 +563,29 @@ function askBreak(ui, dataToday, breakDuration, timeInMin) {
 	cell = row.addButton(".");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(ui, dataToday, breakDuration.indexOf(".") > 0 ? breakDuration : (breakDuration || 0) + ".", timeInMin);
+		askBreak(timeInMin, breakDuration.indexOf(".") > 0 ? breakDuration : (breakDuration || 0) + ".");
 	};
 	
 	cell = row.addButton("0");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(ui, dataToday, breakDuration.length === 0 ? "" : (breakDuration + "0"), timeInMin);
+		askBreak(timeInMin, breakDuration.length === 0 ? "" : (breakDuration + "0"));
 	};
 	
 	cell = row.addButton("⌫");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(ui, dataToday, breakDuration.slice(0, -1), timeInMin);
+		askBreak(timeInMin, breakDuration.slice(0, -1));
 	};
 	
 	row = new UITableRow();
-// 	row.dismissOnSelect = true;
+	row.dismissOnSelect = args.queryParameters.update;
 	row.onSelect = () => {  
         dataToday.breakDuration = roundMinutesDownToQuarter(breakDuration * (timeInMin ? 1 : 60));
-		updateAndSave(file, data, dataToday);
+		updateAndSave();
 		ui.removeAllRows();
 		row = new UITableRow();
-		row.addText(`Breaked for ${dataToday.breakDuration}`).centerAligned();
+		row.addText(`Breaked for ${dataToday.breakDuration} min.`).centerAligned();
 		ui.addRow(row);
 		ui.reload();
 	};
@@ -579,17 +596,18 @@ function askBreak(ui, dataToday, breakDuration, timeInMin) {
 }
 
 // Creates a UI for entering start and finish time
-function ask(ui, todaysDate, dataToday, time, state) {
+function ask(time) {
 	if (state !== WorkDayStates.START && state !== WorkDayStates.END) {
 		console.log(`wrong state for method: ${state}`);
 		return;
 	}
+	time = time || "";
 	let maxLength = 5;
 	let correctFormat = !time || dft.date(time) !== null && time.length === maxLength;
 	
 	ui.removeAllRows();
 	
-	let row = new UITableRow();
+	row = new UITableRow();
 	row.isHeader = true;
 	row.height = 60;
 	row.addText(`Enter ${state === WorkDayStates.START ? "start" : "finish"} time (${dft.dateFormat}).`).centerAligned();
@@ -597,7 +615,7 @@ function ask(ui, todaysDate, dataToday, time, state) {
 	
 	row = new UITableRow();
 	ui.addRow(row);
-	let cell = row.addText(time || DEFAULT_TIME);
+	cell = row.addText(time || DEFAULT_TIME);
 	cell.titleColor = correctFormat ? (!time ? Color.lightGray() : Color.green()) : Color.red();
 	cell.centerAligned();
 	
@@ -611,7 +629,7 @@ function ask(ui, todaysDate, dataToday, time, state) {
 		cell = row.addButton("" + i);
 		cell.centerAligned();
 		cell.onTap = () => {
-			ask(ui, todaysDate, dataToday, ("" + time + j).substring(0, maxLength), state);
+			ask(("" + time + j).substring(0, maxLength));
 		};
 	}
 	
@@ -621,43 +639,50 @@ function ask(ui, todaysDate, dataToday, time, state) {
 	cell = row.addButton(":");
 	cell.centerAligned();
 	cell.onTap = () => {
-		ask(ui, todaysDate, dataToday, (time.length === 2 ? time + ":" : time), state);
+		ask(time.length === 2 ? time + ":" : time);
 	};
 	
 	cell = row.addButton("0");
 	cell.centerAligned();
 	cell.onTap = () => {
-		ask(ui, todaysDate, dataToday, (time + "0").substring(0, maxLength), state);
+		ask((time + "0").substring(0, maxLength));
 	};
 	
 	cell = row.addButton("⌫");
 	cell.centerAligned();
 	cell.onTap = () => {
-		ask(ui, todaysDate, dataToday, time.slice(0, -1), state);
+		ask(time.slice(0, -1));
 	};
 	
 	row = new UITableRow();
-// 	row.dismissOnSelect = correctFormat;
+ 	row.dismissOnSelect = correctFormat && time !== DEFAULT_TIME && args.queryParameters.update;
 	row.onSelect = () => {
-		if (correctFormat) {
-			ui.removeAllRows();
+		if (!correctFormat) {
 			row = new UITableRow();
-			let timeToSave = dft.string(roundDateDownToQuarterMinutes(getDateTime(todaysDate, dft, time || DEFAULT_TIME)));
-			if (state === WorkDayStates.START) {
-				dataToday.start = timeToSave;
-				row.addText(`Started at ${timeToSave}`).centerAligned();
-			} else {
-				dataToday.end = timeToSave;
-				row.addText(`Finished at ${timeToSave}`).centerAligned();
-			}
-			updateAndSave(file, data, dataToday);
+			cell = row.addText(`Incorrect time format. Expected ${dft.dateFormat}.`);
+			cell.titleColor = Color.red();
+			cell.centerAligned();
+			ui.addRow(row);
+			ui.reload();
+		} else if (time === DEFAULT_TIME) {
+			row = new UITableRow();
+			cell = row.addText(`No time entered yet. Expected ${dft.dateFormat}.`);
+			cell.titleColor = Color.red();
+			cell.centerAligned();
 			ui.addRow(row);
 			ui.reload();
 		} else {
+			ui.removeAllRows();
 			row = new UITableRow();
-			cell = row.addText(`Incorrect time format. Expected ${dft.dateFormat}`);
-			cell.titleColor = Color.red();
-			cell.centerAligned();
+			let timeToSave = dft.string(roundDateDownToQuarterMinutes(getDateTime(time || DEFAULT_TIME)));
+			if (state === WorkDayStates.START) {
+				dataToday.start = timeToSave;
+				row.addText(`Started at ${timeToSave}.`).centerAligned();
+			} else {
+				dataToday.end = timeToSave;
+				row.addText(`Finished at ${timeToSave}.`).centerAligned();
+			}
+			updateAndSave();
 			ui.addRow(row);
 			ui.reload();
 		}
