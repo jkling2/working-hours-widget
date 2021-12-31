@@ -5,14 +5,14 @@
 // sets the locale of the date
 const locale = "de_DE";
 
-// specifies the file name containing the working hours
-const workingHoursFileName = "workinghours.json";
-
 // the mail address to send mail to and from
 const mailAddress = "jasmin.kling93@gmail.com";
 
 // sets the month for which data is exported - default is current month - valid numbers from 0 to 11
 const monthToExportNr = new Date().getMonth();
+
+// specifies the file name containing the working hours
+const workingHoursFileName = "workinghours.json";
 
 const dft = new DateFormatter();
 dft.useShortTimeStyle();
