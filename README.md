@@ -44,21 +44,21 @@ See the config parameters `startOfDayNotifTime`, `breakOfDayNotifTime`, `endOfDa
 You can either long-press or click the notification to provide either your start time, break duration or finish time, depending on the notification you are interacting with.
 The resulting UIs (via long-press or click) are identical. Furthermore, the structure of the UIs for providing either your start time, break duration or finish time are identical. A header informs you about the data you are changing. After that a few options are provided. Or you can enter an individual start/finish time or break duration.
 
-<img src="./img/notification_start_long_press.PNG" width="200" height="250">&nbsp;&nbsp;
-<img src="./img/notification_start.png" width="200" height="400">&nbsp;&nbsp;
-<img src="./img/notification_start_individual_time.PNG" width="200" height="400">&nbsp;&nbsp;
-<img src="./img/notification_start_individual_time_wrong_format.PNG" width="200" height="400">
+<img src="./img/notification_start_long_press.PNG" width="180" height="220">&nbsp;&nbsp;
+<img src="./img/notification_start.png" width="180" height="360">&nbsp;&nbsp;
+<img src="./img/notification_start_individual_time.PNG" width="180" height="360">&nbsp;&nbsp;
+<img src="./img/notification_start_individual_time_wrong_format.PNG" width="180" height="360">
 
-<img src="./img/notification_finish_long_press.PNG" width="200" height="250">&nbsp;&nbsp;
-<img src="./img/notification_finish_long_press_individual_time.PNG" width="200" height="250">
+<img src="./img/notification_finish_long_press.PNG" width="180" height="220">&nbsp;&nbsp;
+<img src="./img/notification_finish_long_press_individual_time.PNG" width="180" height="220">
 
-<img src="./img/notification_break_long_press.png" width="200" height="250">&nbsp;&nbsp;
-<img src="./img/notification_break_long_press_individual_time_h.PNG" width="200" height="250">&nbsp;&nbsp;
-<img src="./img/notification_break_long_press_individual_time_min.PNG" width="200" height="250">&nbsp;&nbsp;
-<img src="./img/notification_break_long_press_individual_time_min_entered.PNG" width="200" height="250">
+<img src="./img/notification_break_long_press.png" width="180" height="220">&nbsp;&nbsp;
+<img src="./img/notification_break_long_press_individual_time_h.PNG" width="180" height="220">&nbsp;&nbsp;
+<img src="./img/notification_break_long_press_individual_time_min.PNG" width="180" height="220">&nbsp;&nbsp;
+<img src="./img/notification_break_long_press_individual_time_min_entered.PNG" width="180" height="220">
 
 If you are interacting with the notifiction via long-press, the saved data is displayed.
-<img src="./img/notification_break_long_press_individual_time_min_ok.PNG" width="200" height="250">&nbsp;&nbsp;
+<img src="./img/notification_break_long_press_individual_time_min_ok.PNG" width="180" height="220">&nbsp;&nbsp;
 
 #### Via Update
 
