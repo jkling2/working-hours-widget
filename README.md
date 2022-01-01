@@ -42,7 +42,7 @@ For each day three interactable notifications are scheduled and send at the prov
 See the config parameters `startOfDayNotifTime`, `breakOfDayNotifTime`, `endOfDayNotifTime` in [Tracker Config Parameter](https://github.com/jkling2/working-hours-widget#tracker-1) for setting your individual notification times.
 
 You can either long-press or click the notification to provide either your start time, break duration or finish time, depending on the notification you are interacting with.
-The resulting UIs (via long-press or click) are identical. Furthermore, the structure of the UIs for providing either your start time, break duration or finish time are identical. A header informs you about the data you are changing. After that a few options are provided. Or you can enter an individual start/finish time or break duration.
+The resulting UIs (via long-press or click) are identical. Furthermore, the structure of the UIs for providing either your start time, break duration or finish time are identical. A header informs you about the data you are changing. After that a few options are provided. Or you can enter an individual start/finish time or break duration. Individual start/finish time are checked for the correct format before they can be saved.
 
 <img src="./img/notification_start_long_press.PNG" width="180" height="220">&nbsp;&nbsp;
 <img src="./img/notification_start.png" width="180" height="360">&nbsp;&nbsp;
