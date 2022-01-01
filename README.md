@@ -4,11 +4,76 @@ This project provides a widget that tracks your working hours (`working-hours-tr
 
 ## Widget Design
 
-TODO
+<img src="./img/widget_weekend_holiday.png" align="right" width="200" height="200">
+
+The widget for tracking your working hours is divided into three parts.
+
+The top part displays statistics about the current month, the current week and the past five working days:</br>
+The first line displays the current month, the hours you worked (1st number) and the total hours you need to work (2nd number) during this month.</br>
+The second line displays the current week and the hours you worked during this week.</br>
+The third line displays your average daily working hours calculated over the last five working days.
+
+The middle part displays today's day and date.
+
+<img src="./img/widget_long_work.png" align="right" width="200" height="200">
+
+And the bottom part shows information about the current working day. This information is only shown for working days. If the current day is a weekend, holiday or vacation, no data is shown.
+Otherwise, the start time, break duration and finish time are, once provided, displayed in the first line. In the second/last line the current working hours are displayed. These are calculated based on the provided data. The current working hours are calculated once a start time is provided. If no finish time is provided, the current time is used to calculate the current working hours. Once a break duration is provided, it is subtracted from the current working hours.
+
+The monthly, average daily and current working hours are color coded:
+* Blue indicates that you reached or exceeded your needed working hours
+* Orange indicates that you worked less than your needed working hours (not used for monthly working hours)
+
+See the config parameter `honestDayWork` in [Tracker Config Parameter](https://github.com/jkling2/working-hours-widget#tracker-1) for setting your individual needed daily working hours. 
 
 ## Functionality
 
 ### Tracker
+
+The working hours tracker tracks your daily working hours as precise as 15 minutes. A start/finish time or break duration that is not as precise as 15 minutes is rounded down to either the previous full quarter hour or the next smaller multiple of 15 (minutes).
+
+Data about your daily working hours can be tracked in two different ways.
+
+#### Via Notifications
+
+<img src="./img/notification.png" align="right" width="200" height="100">
+
+For each day three interactable notifications are scheduled and send at the provided notification times.
+See the config parameters `startOfDayNotifTime`, `breakOfDayNotifTime`, `endOfDayNotifTime` in [Tracker Config Parameter](https://github.com/jkling2/working-hours-widget#tracker-1) for setting your individual notification times.
+
+You can either long-press or click the notification to provide either your start time, break duration or finish time, depending on the notification you are interacting with.
+The resulting UIs (via long-press or click) are identical. Furthermore, the structure of the UIs for providing either your start time, break duration or finish time are identical. A header informs you about the data you are changing. After that a few options are provided. Or you can enter an individual start/finish time or break duration.
+
+<img src="./img/notification_start_long_press.PNG" width="200" height="250">&nbsp;&nbsp;
+<img src="./img/notification_start.png" width="200" height="400">&nbsp;&nbsp;
+<img src="./img/notification_start_individual_time.PNG" width="200" height="400">&nbsp;&nbsp;
+<img src="./img/notification_start_individual_time_wrong_format.PNG" width="200" height="400">
+
+<img src="./img/notification_finish_long_press.PNG" width="200" height="250">&nbsp;&nbsp;
+<img src="./img/notification_finish_long_press_individual_time.PNG" width="200" height="250">
+
+<img src="./img/notification_break_long_press.png" width="200" height="250">&nbsp;&nbsp;
+<img src="./img/notification_break_long_press_individual_time_h.PNG" width="200" height="250">&nbsp;&nbsp;
+<img src="./img/notification_break_long_press_individual_time_min.PNG" width="200" height="250">&nbsp;&nbsp;
+<img src="./img/notification_break_long_press_individual_time_min_entered.PNG" width="200" height="250">
+
+If you are interacting with the notifiction via long-press, the saved data is displayed.
+<img src="./img/notification_break_long_press_individual_time_min_ok.PNG" width="200" height="250">&nbsp;&nbsp;
+
+#### Via Update
+
+In order to use the update functionality, you have to configure your widget and use select when interacting "Open URL". See [Setup #9](https://github.com/jkling2/working-hours-widget#setup).
+
+You can long-press the widget to reach the UI for updating your start time, break duration or finish time.
+* You can set the start time by providing the start time in the format HH:mm.
+* You can either add time to your current break duration or set it by providing your total break duration either in minutes or hours.
+* You can either increase your finish time or set it by providing the finish time in the format HH:mm. The first option is only shown if a finish time is already provided.
+
+<img src="./img/update.png" width="200" height="400">&nbsp;&nbsp;
+<img src="./img/update_break.PNG" width="200" height="400">&nbsp;&nbsp;
+<img src="./img/update_finish_not_set.PNG" width="200" height="400">
+
+#### Holidays and vacation
 
 TODO: describe expected format of holidays.json -> possibly change to differentiate between holiday, vacation and sick days
 
