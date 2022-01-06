@@ -50,7 +50,7 @@ const holidays = fm.fileExists(holidaysFile) ? JSON.parse(fm.readString(holidays
 let ui = new UITable();
 ui.showSeparators = true;	
 let row, cell, state;
-	
+
 if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 	// build UI for updating data
 	row = new UITableRow()
@@ -139,8 +139,8 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 						break;
 					}
 					case WorkDayStates.BREAK: {
-						dataToday.breakDuration = p;
-						row.addText(`Breaked for ${p} min.`).centerAligned();
+						dataToday.breakDuration = dataToday.breakDuration + p;
+						row.addText(`Breaked for ${dataToday.breakDuration} min.`).centerAligned();
 						break;
 					}
 					case WorkDayStates.END: {
@@ -431,8 +431,7 @@ function getWeek(d) {
 
 // determines if given date is a workday
 function isWorkDay(d) {
-	return true;
-	//return isWeekDay(d || todaysDate) && !isHoliday(d || todaysDate);
+	return isWeekDay(d || todaysDate) && !isHoliday(d || todaysDate);
 }
 
 // determines if given date is a weekday
