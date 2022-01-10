@@ -64,14 +64,17 @@ If you are interacting with the notifiction via long-press, the saved data is di
 
 In order to use the update functionality, you have to configure your widget and use select when interacting "Open URL". See [Setup #9](https://github.com/jkling2/working-hours-widget#setup).
 
-You can long-press the widget to reach the UI for updating your start time, break duration or finish time.
+You can long-press the widget to reach the UI for updating your start time, break duration or finish time/work duration.
 * You can set the start time by providing the start time in the format HH:mm.
 * You can either add time to your current break duration or set it by providing your total break duration either in minutes or hours.
-* You can either increase your finish time or set it by providing the finish time in the format HH:mm. The first option is only shown if a finish time is already provided.
+* You can either increase your work duration, or set it by providing your total work duration either in minutes or hours, or set your finish time by providing the finish time in the format HH:mm. The first option is only shown if a start time is already provided. The second option also sets the start time to the `startOfDayNotifTime` (see [Tracker Config Parameter](https://github.com/jkling2/working-hours-widget#tracker-1)) if no start time is given.
 
 <img src="./img/update.png" width="200" height="400">&nbsp;&nbsp;
-<img src="./img/update_break.PNG" width="200" height="400">&nbsp;&nbsp;
-<img src="./img/update_finish_not_set.PNG" width="200" height="400">
+<img src="./img/update_break.PNG" width="200" height="400">
+
+<img src="./img/update_start_not_set.PNG" width="200" height="400"> &nbsp;&nbsp;
+<img src="./img/update_work_time.png" width="200" height="400">&nbsp;&nbsp;
+<img src="./img/update_individual_work_time.png" width="200" height="400">&nbsp;&nbsp;
 
 #### Holidays and vacation
 

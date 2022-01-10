@@ -69,7 +69,7 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 	row.dismissOnSelect = false;
 	row.onSelect = () => {
 		state = WorkDayStates.START;
-		ask();
+		askTime();
 	};
 	ui.addRow(row);
 	
@@ -168,17 +168,17 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 		row.dismissOnSelect = false;
 		switch(state) {
 			case WorkDayStates.START: {
-				row.onSelect = () => ask();
+				row.onSelect = () => askTime();
 				row.addText("Add individual start time").centerAligned();
 				break;
 			}
 			case WorkDayStates.BREAK: {
-				row.onSelect = () => askBreak(true);
+				row.onSelect = () => askDuration(true);
 				row.addText("Add individual break time").centerAligned();
 				break;
 			}
 			case WorkDayStates.END: {
-				row.onSelect = () => ask();
+				row.onSelect = () => askTime();
 				row.addText("Add individual finish time").centerAligned();
 				break;
 			}
@@ -474,7 +474,7 @@ function updateAddTimeTable(isBreak) {
 	row.height = 10;
 	ui.addRow(row);
 	// row to add predefined time (from 15 min to 2 hours)
-	if (isBreak || dataToday.end !== DEFAULT_TIME) {
+	if (isBreak || dataToday.start !== DEFAULT_TIME) {
 		for (let i = 1; i <= 8; i++) {
 			let minutesToAdd = i * 15;
 			row = new UITableRow();
@@ -484,7 +484,7 @@ function updateAddTimeTable(isBreak) {
 				if (isBreak) {
 					dataToday.breakDuration = dataToday.breakDuration + minutesToAdd;
 				} else {
-					let endTime = getDateTime(dataToday.end);
+					let endTime = getDateTime(dataToday.end === DEFAULT_TIME ? dataToday.start : dataToday.end);
 					endTime.setMinutes(endTime.getMinutes() + minutesToAdd);
 					dataToday.end = dft.string(endTime);
 				}
@@ -503,10 +503,16 @@ function updateAddTimeTable(isBreak) {
 	row.height = 40;
 	row.dismissOnSelect = false;
 	if (isBreak) {
-		row.onSelect = () => askBreak(true);
+		row.onSelect = () => askDuration(true);
 		row.addText("Set individual break time").centerAligned();
 	} else {
-		row.onSelect = () => ask();
+		row.onSelect = () => askDuration(true);
+		row.addText("Set individual work time").centerAligned();
+		ui.addRow(row);
+		row = new UITableRow();
+		row.height = 40;
+		row.dismissOnSelect = false;
+		row.onSelect = () => askTime();
 		row.addText("Set individual finish time").centerAligned();
 	}
 	ui.addRow(row);
@@ -514,15 +520,15 @@ function updateAddTimeTable(isBreak) {
 }
 
 // Creates a UI for entering break duration
-function askBreak(timeInMin, breakDuration) {
-	breakDuration = breakDuration || "";
+function askDuration(durationInMin, duration) {
+	duration = duration || "";
 	
 	ui.removeAllRows();
 	
 	row = new UITableRow();
 	row.isHeader = true;
 	row.height = 60;
-	row.addText(`Enter break duration. So far you took a break for ${dataToday.breakDuration} min.`).centerAligned();
+	row.addText(`Enter ${state === WorkDayStates.END ? "work" : "break"} duration. So far you ${state === WorkDayStates.END ? "worked" : "took a break"} for ${state === WorkDayStates.END ? getCurrentWorkingHours() * 60 : dataToday.breakDuration} min.`).centerAligned();
 	ui.addRow(row);
 	
 	row = new UITableRow();
@@ -530,17 +536,17 @@ function askBreak(timeInMin, breakDuration) {
 	cell = row.addButton("min");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(true, breakDuration);
+		askDuration(true, duration);
 	};
 	cell = row.addButton("h");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(false, breakDuration);
+		askDuration(false, duration);
 	};
 	
 	row = new UITableRow();
 	ui.addRow(row);
-	row.addText((breakDuration || 0) + (timeInMin ? " min" : " h")).centerAligned();
+	row.addText((duration || 0) + (durationInMin ? " min" : " h")).centerAligned();
 	
 	for (let i = 1; i <= 9; i++) {
 		if (i % 3 === 1) {
@@ -552,7 +558,7 @@ function askBreak(timeInMin, breakDuration) {
 		cell = row.addButton("" + i);
 		cell.centerAligned();
 		cell.onTap = () => {
-			askBreak(timeInMin, "" + breakDuration + j);
+			askDuration(durationInMin, "" + duration + j);
 		};
 	}
 	
@@ -562,29 +568,37 @@ function askBreak(timeInMin, breakDuration) {
 	cell = row.addButton(".");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(timeInMin, breakDuration.indexOf(".") > 0 ? breakDuration : (breakDuration || 0) + ".");
+		askDuration(durationInMin, duration.indexOf(".") > 0 ? duration : (duration || 0) + ".");
 	};
 	
 	cell = row.addButton("0");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(timeInMin, breakDuration.length === 0 ? "" : (breakDuration + "0"));
+		askDuration(durationInMin, duration.length === 0 ? "" : (duration + "0"));
 	};
 	
 	cell = row.addButton("⌫");
 	cell.centerAligned();
 	cell.onTap = () => {
-		askBreak(timeInMin, breakDuration.slice(0, -1));
+		askDuration(durationInMin, duration.slice(0, -1));
 	};
 	
 	row = new UITableRow();
-	row.dismissOnSelect = args.queryParameters.update;
-	row.onSelect = () => {  
-        dataToday.breakDuration = roundMinutesDownToQuarter(breakDuration * (timeInMin ? 1 : 60));
-		updateAndSave();
+	row.dismissOnSelect = !config.runsInNotification;
+	row.onSelect = () => {
 		ui.removeAllRows();
 		row = new UITableRow();
-		row.addText(`Breaked for ${dataToday.breakDuration} min.`).centerAligned();
+		let timeToSave = roundMinutesDownToQuarter(duration * (durationInMin ? 1 : 60));
+		if (state === WorkDayStates.BREAK) {
+			dataToday.breakDuration = timeToSave;
+			row.addText(`Breaked for ${dataToday.breakDuration} min.`).centerAligned();
+		} else {
+			let finishTime = getDateTime(dataToday.start);
+			finishTime.setMinutes(finishTime.getMinutes() + timeToSave + dataToday.breakDuration);
+			dataToday.end = dft.string(finishTime);
+			row.addText(`Finished at ${dataToday.end} (worked for ${timeToSave} min).`).centerAligned();
+		}
+		updateAndSave();
 		ui.addRow(row);
 		ui.reload();
 	};
@@ -595,7 +609,7 @@ function askBreak(timeInMin, breakDuration) {
 }
 
 // Creates a UI for entering start and finish time
-function ask(time) {
+function askTime(time) {
 	if (state !== WorkDayStates.START && state !== WorkDayStates.END) {
 		console.log(`wrong state for method: ${state}`);
 		return;
@@ -628,7 +642,7 @@ function ask(time) {
 		cell = row.addButton("" + i);
 		cell.centerAligned();
 		cell.onTap = () => {
-			ask(("" + time + j).substring(0, maxLength));
+			askTime(("" + time + j).substring(0, maxLength));
 		};
 	}
 	
@@ -638,23 +652,23 @@ function ask(time) {
 	cell = row.addButton(":");
 	cell.centerAligned();
 	cell.onTap = () => {
-		ask(time.length === 2 ? time + ":" : time);
+		askTime(time.length === 2 ? time + ":" : time);
 	};
 	
 	cell = row.addButton("0");
 	cell.centerAligned();
 	cell.onTap = () => {
-		ask((time + "0").substring(0, maxLength));
+		askTime((time + "0").substring(0, maxLength));
 	};
 	
 	cell = row.addButton("⌫");
 	cell.centerAligned();
 	cell.onTap = () => {
-		ask(time.slice(0, -1));
+		askTime(time.slice(0, -1));
 	};
 	
 	row = new UITableRow();
- 	row.dismissOnSelect = correctFormat && time !== DEFAULT_TIME && args.queryParameters.update;
+ 	row.dismissOnSelect = correctFormat && time !== DEFAULT_TIME && !config.runsInNotification;
 	row.onSelect = () => {
 		if (!correctFormat) {
 			row = new UITableRow();
