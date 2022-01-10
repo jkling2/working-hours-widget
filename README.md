@@ -69,10 +69,10 @@ You can long-press the widget to reach the UI for updating your start time, brea
 * You can either add time to your current break duration or set it by providing your total break duration either in minutes or hours.
 * You can either increase your work duration, or set it by providing your total work duration either in minutes or hours, or set your finish time by providing the finish time in the format HH:mm. The first option is only shown if a start time is already provided. The second option also sets the start time to the `startOfDayNotifTime` (see [Tracker Config Parameter](https://github.com/jkling2/working-hours-widget#tracker-1)) if no start time is given.
 
-<img src="./img/update.png" width="200" height="400">&nbsp;&nbsp;
-<img src="./img/update_break.PNG" width="200" height="400">&nbsp;&nbsp;
-<img src="./img/update_work_time.png" width="200" height="400">&nbsp;&nbsp;
-<img src="./img/update_individual_work_time.png" width="200" height="400">&nbsp;&nbsp;
+<img src="./img/update.png" width="180" height="360">&nbsp;&nbsp;
+<img src="./img/update_break.PNG" width="180" height="360">&nbsp;&nbsp;
+<img src="./img/update_work_time.png" width="180" height="360">&nbsp;&nbsp;
+<img src="./img/update_individual_work_time.png" width="180" height="360">
 
 #### Holidays and vacation
 
