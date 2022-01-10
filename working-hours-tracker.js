@@ -593,6 +593,10 @@ function askDuration(durationInMin, duration) {
 			dataToday.breakDuration = timeToSave;
 			row.addText(`Breaked for ${dataToday.breakDuration} min.`).centerAligned();
 		} else {
+			if (dataToday.start === DEFAULT_TIME) {
+				dataToday.start = startOfDayNotifTime;
+				row.addText(`Started at ${dataToday.start}. `);
+			}
 			let finishTime = getDateTime(dataToday.start);
 			finishTime.setMinutes(finishTime.getMinutes() + timeToSave + dataToday.breakDuration);
 			dataToday.end = dft.string(finishTime);
