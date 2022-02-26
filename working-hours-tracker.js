@@ -707,7 +707,8 @@ function askTime(time) {
 			ui.addRow(row);
 			ui.reload();
 			if (args.notification) {	
-				Notification.removeDelivered([args.notification.identifier]);		
+				Notification.removeDelivered([args.notification.identifier]);
+			}				
 		}
 	};
 	row.addText("OK").centerAligned();
