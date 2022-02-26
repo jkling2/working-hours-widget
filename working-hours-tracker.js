@@ -152,6 +152,7 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 				updateAndSave();
 				ui.addRow(row);
 				ui.reload();
+				Notification.removeDelivered([notif.identifier]);
 			}
 			row.addText(`${p}${state === WorkDayStates.BREAK ? " min" : ""}`).centerAligned();
 			ui.addRow(row);
@@ -584,7 +585,7 @@ function askDuration(durationInMin, duration) {
 	};
 	
 	row = new UITableRow();
-	row.dismissOnSelect = !config.runsInNotification;
+	row.dismissOnSelect = args.queryParameters.update;
 	row.onSelect = () => {
 		ui.removeAllRows();
 		row = new UITableRow();
@@ -605,6 +606,9 @@ function askDuration(durationInMin, duration) {
 		updateAndSave();
 		ui.addRow(row);
 		ui.reload();
+		if (args.notification) {	
+				Notification.removeDelivered([args.notification.identifier]);		
+		}
 	};
 	row.addText("OK").centerAligned();
 	ui.addRow(row);
@@ -702,6 +706,8 @@ function askTime(time) {
 			updateAndSave();
 			ui.addRow(row);
 			ui.reload();
+			if (args.notification) {	
+				Notification.removeDelivered([args.notification.identifier]);		
 		}
 	};
 	row.addText("OK").centerAligned();

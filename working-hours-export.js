@@ -52,7 +52,7 @@ let monthlyData = getSortedDataForMonth(data, monthToExport, df);
 for (let dayInMonth = 1; dayInMonth <= daysMonth; dayInMonth++) {
 	let d = monthToExport;
 	d.setDate(dayInMonth);
-	if (isWeekEnd(d)) {
+	if (isWeekEnd(d) || monthlyDataIdx >= monthlyData.length) {
 		monthlyDataStr += `${df.string(d)}${csvSep}${csvSep}${csvSep}${csvSep}${csvSep}${newLine}`;
 	} else if (isHoliday(d, holidays, df)) {
 		monthlyDataStr += `${df.string(d)}${csvSep}08:00${csvSep}17:00${csvSep}1${csvSep}8${csvSep}${newLine}`;
