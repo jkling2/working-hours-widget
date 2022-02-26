@@ -76,7 +76,21 @@ You can long-press the widget to reach the UI for updating your start time, brea
 
 #### Holidays and vacation
 
-TODO: describe expected format of holidays.json -> possibly change to differentiate between holiday, vacation and sick days
+Working hours are only tracked on work days. Work days are days that are neither weekends nor holidays or vacation. Holidays and vacations can be provided in a separate file (`holidays.json`). This file must be a list oj JSON-Objects with the attributes `name`, `start` and `end` (optional).
+
+```json
+[
+  { 
+    "name": "name of holiday",
+    "start": "dd.MM.JJJJ",
+    "end": "dd.MM.JJJJ"
+  },
+  ...
+]
+```
+
+WIP: Create UI for providing holidays/vacations. Possibly change to differentiate between holiday, vacation and sick days.
+
 
 ### Export
 
