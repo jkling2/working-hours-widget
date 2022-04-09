@@ -2,6 +2,8 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: teal; icon-glyph: table;
 
+// start of config ==========================
+
 // sets the locale of the date
 const locale = "de_DE";
 
@@ -13,6 +15,14 @@ const monthToExportNr = new Date().getMonth();
 
 // specifies the file name containing the working hours
 const workingHoursFileName = "workinghours.json";
+
+// end of config ===========================
+
+const FreeDays = {
+	SICKDAY: "sick day",
+	VACATION: "vacation",
+	HOLIDAY: "holiday"
+}
 
 const dft = new DateFormatter();
 dft.useShortTimeStyle();
@@ -28,13 +38,13 @@ let fm = FileManager.iCloud();
 let dir = fm.joinPath(fm.documentsDirectory(), "working-hours");
 let file = fm.joinPath(dir, workingHoursFileName);
 let data = fm.fileExists(file) ? JSON.parse(fm.readString(file)) : JSON.parse('[]');
-let holidaysFile = fm.joinPath(dir, "holidays.json");
-let holidays = fm.fileExists(holidaysFile) ? JSON.parse(fm.readString(holidaysFile)) : JSON.parse('[]');
+let freeDaysFile = fm.joinPath(dir, "freeDays.json");
+let freeDays = fm.fileExists(freeDaysFile) ? JSON.parse(fm.readString(freeDaysFile)) : JSON.parse('[]');
 let fileMonth = fm.joinPath(dir, `workinghours${monthToExportStr}.csv`);
 
 const csvSep = ';';
 const newLine = '\n';
-const header = `date${csvSep}start${csvSep}end${csvSep}break${csvSep}hours worked${csvSep}`;
+const header = `date${csvSep}start${csvSep}end${csvSep}break${csvSep}hours worked${csvSep}info`;
 let monthlyDataStr = `${header}${newLine}`;
 let workingDaysMonth = 0;
 let workingHoursMonth = 0;
@@ -52,15 +62,21 @@ let monthlyData = getSortedDataForMonth(data, monthToExport, df);
 for (let dayInMonth = 1; dayInMonth <= daysMonth; dayInMonth++) {
 	let d = monthToExport;
 	d.setDate(dayInMonth);
-	if (isWeekEnd(d) || monthlyDataIdx >= monthlyData.length) {
+	if (isHoliday(d)) {
+		monthlyDataStr += `${df.string(d)}${csvSep}${csvSep}${csvSep}${csvSep}${csvSep}${getFreeDayName(d)}${newLine}`;		
+	} else if (isWeekEnd(d)) {
+		monthlyDataStr += `${df.string(d)}${csvSep}${csvSep}${csvSep}${csvSep}${csvSep}weekend${newLine}`;
+	} else if (isVacation(d)) {
+		monthlyDataStr += `${df.string(d)}${csvSep}08:00${csvSep}17:00${csvSep}1${csvSep}8${csvSep}${getFreeDayName(d)}${newLine}`;
+	} else if (monthlyDataIdx >= monthlyData.length) {
 		monthlyDataStr += `${df.string(d)}${csvSep}${csvSep}${csvSep}${csvSep}${csvSep}${newLine}`;
-	} else if (isHoliday(d, holidays, df)) {
-		monthlyDataStr += `${df.string(d)}${csvSep}08:00${csvSep}17:00${csvSep}1${csvSep}8${csvSep}${newLine}`;
 	} else {
+		let sickDay = isSickDay(d) ? FreeDays.SICKDAY : "";
 		let dateData = monthlyData[monthlyDataIdx];
 		if (sameDay(d, df.date(dateData.date))) {
 			let workingHours = determineWorkingHours(dateData, df, dft);
-			let dateString = `${dateData.date}${csvSep}${dateData.start}${csvSep}${dateData.end}${csvSep}${(dateData.breakDuration/60).toLocaleString()}${csvSep}${workingHours.toLocaleString()}${csvSep}`;
+			let workingLocation = dateData.location ? dateData.location : "";
+			let dateString = `${dateData.date}${csvSep}${dateData.start}${csvSep}${dateData.end}${csvSep}${(dateData.breakDuration/60).toLocaleString()}${csvSep}${workingHours.toLocaleString()}${csvSep}${workingLocation} ${sickDay}`;
 			monthlyDataStr += `${dateString}${newLine}`;
 			workingDaysMonth++;
 			workingHoursMonth += workingHours;
@@ -69,7 +85,7 @@ for (let dayInMonth = 1; dayInMonth <= daysMonth; dayInMonth++) {
 			breakMonth += dateData.breakDuration;
 			monthlyDataIdx++;
 		} else {
-			monthlyDataStr += `${df.string(d)}${csvSep}${csvSep}${csvSep}${csvSep}${csvSep}${newLine}`;
+			monthlyDataStr += `${df.string(d)}${csvSep}${csvSep}${csvSep}${csvSep}${csvSep}${sickDay}${newLine}`;
 		}
 	}
 }
@@ -95,25 +111,78 @@ function isWeekEnd(d) {
 		|| (d.getDay() === 6)); // day 6 is saturday
 }
 
-// determines if given date is a holiday
-function isHoliday(d, holidays, df) {
-	let isAHoliday = false;
-    for (let holiday of holidays) {      
-        if (holiday.end == null) {
-            if (sameDay(d, df.date(holiday.start))) {
-                isAHoliday = true;
-                break;
-            }
-        } else {
-            let start = df.date(holiday.start);
-            let end = df.date(holiday.end);
-            if (d.getTime() >= start.getTime() && d.getTime() <= end.getTime()) {
-                isAHoliday = true;
-                break;
-            }
-        }
+// determines if the given date is a free day (sick, vacation or holiday)
+function isFreeDay(d) {
+	return isSickDay(d) || isVacation(d) || isHoliday(d);
+}
+
+// determines the type of free day for the given date (sick, vacation or holiday)
+function getFreeDay(d) {
+	if (isSickDay(d)) {
+		FreeDays.SICKDAY;
+	} else if (isVacation(d)) {
+		FreeDays.VACATION;
+	} else if (isHoliday(d)) {
+		FreeDays.HOLIDAY;
+	} else {
+		return "";
+	}
+}
+
+// determines the name of the free day for the given date
+function getFreeDayName(d) {	
+	for (let entry of freeDays) {   
+		if (entry.end == null) {
+			if (sameDay(d, df.date(entry.start))) {
+				return entry.name;
+			}
+		} else {
+			let start = df.date(entry.start);
+			let end = df.date(entry.end);
+			if (d.getTime() >= start.getTime() && d.getTime() <= end.getTime()) {
+				return entry.name;
+			}
+		}
     }
-    return isAHoliday;
+    return "";
+}
+
+// determines if the given date is a sick day
+function isSickDay(d) {
+	return checkFreeDay(d, FreeDays.SICKDAY);
+}
+
+// determines if the given date is a vacation
+function isVacation(d) {
+	return checkFreeDay(d, FreeDays.VACATION);
+}
+
+// determines if the given date is a holiday
+function isHoliday(d) {
+	return checkFreeDay(d, FreeDays.HOLIDAY);
+}
+
+// checks if the given date is a free day of the provided type
+function checkFreeDay(d, freeDay) {
+	let isAFreeDay = false;
+    for (let entry of freeDays) {   
+		if (entry.type === freeDay) {
+			if (entry.end == null) {
+				if (sameDay((d || todaysDate), df.date(entry.start))) {
+					isAFreeDay = true;
+					break;
+				}
+			} else {
+				let start = df.date(entry.start);
+				let end = df.date(entry.end);
+				if ((d || todaysDate).getTime() >= start.getTime() && (d || todaysDate).getTime() <= end.getTime()) {
+					isAFreeDay = true;
+					break;
+				}
+			}
+		}
+    }
+    return isAFreeDay;
 }
 
 // extracts the data for the given month and sorts the data in ascending order

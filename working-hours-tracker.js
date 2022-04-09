@@ -31,6 +31,12 @@ const WorkDayStates = {
 	HONEST_DAY_WORK: 3
 }
 
+const FreeDays = {
+	SICKDAY: "sick day",
+	VACATION: "vacation",
+	HOLIDAY: "holiday"
+}
+
 const DEFAULT_TIME = "00:00";
 const dft = new DateFormatter();
 dft.useShortTimeStyle();
@@ -44,8 +50,8 @@ const file = fm.joinPath(dir, "workinghours.json");
 const data = fm.fileExists(file) ? JSON.parse(fm.readString(file)) : JSON.parse('[]');
 const todaysDate = df.date(df.string(new Date()));
 const dataToday = (data.length > 0 && sameDay(todaysDate, df.date(data[0].date))) ? data[0] : JSON.parse("{}");
-const holidaysFile = fm.joinPath(dir, "holidays.json");
-const holidays = fm.fileExists(holidaysFile) ? JSON.parse(fm.readString(holidaysFile)) : JSON.parse('[]');
+const freeDaysFile = fm.joinPath(dir, "freeDays.json");
+const freeDays = fm.fileExists(freeDaysFile) ? JSON.parse(fm.readString(freeDaysFile)) : JSON.parse('[]');
 
 let ui = new UITable();
 ui.showSeparators = true;	
@@ -88,6 +94,37 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 	row.onSelect = () => {
 		state = WorkDayStates.END;
 		updateAddTimeTable(false);
+	};
+	ui.addRow(row);
+	
+	row = new UITableRow();
+	row.addText("HomeOffice").centerAligned();
+	row.dismissOnSelect = true;
+	row.onSelect = () => {
+		dataToday.location = "HO";
+		updateAndSave();
+	};
+	ui.addRow(row);
+
+	row = new UITableRow();
+	row.addText("Sick").centerAligned();
+	row.dismissOnSelect = true;
+	row.onSelect = () => {
+		let entry = JSON.parse("{}");
+		entry.type = FreeDays.SICKDAY;
+		entry.name = "sick";
+		entry.start = df.string(todaysDate);
+		console.log(`saving sick day for ${entry.start}`);
+		freeDays.unshift(entry);
+		fm.writeString(freeDaysFile, JSON.stringify(freeDays));
+		// remove current and future notifications
+		console.log(`Remove notifications for sick day ${entry.start}`);
+		removeNotifs();
+		// delete entry if not yet worked
+		if (JSON.stringify(dataToday) !== '{}' && dataToday.start === DEFAULT_TIME && dataToday.breakDuration === 0 && dataToday.end === DEFAULT_TIME) {
+			data.shift();
+			fm.writeString(file, JSON.stringify(data));
+		}
 	};
 	ui.addRow(row);
 	
@@ -283,7 +320,20 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 	
 	// display current working time
 	widget.addSpacer(10);
-	widget.addText(`${todaysDate.toLocaleString('default', { weekday: 'short' })}, ${dataToday.date}`);
+	let furtherDescription = "";
+	if (dataToday.location === "HO") {
+		furtherDescription = " 🏠";
+	} else if (isSickDay()) {
+		furtherDescription = " 🤒";
+	} else if (isHoliday()) {
+		furtherDescription = " 🎄";
+	} else if (isVacation()) {
+		furtherDescription = " 🏞️";
+	} else if (!isWeekDay()) {
+		furtherDescription = " ‍🎉";
+	}
+	dateText = widget.addText(`${todaysDate.toLocaleString('default', { weekday: 'short' })}, ${dataToday.date}${furtherDescription}`);
+	dateText.minimumScaleFactor = 0.8;
 	widget.addSpacer(5);
 	let currentWorkDay = "";
 	if (dataToday.start !== DEFAULT_TIME){
@@ -430,36 +480,58 @@ function getWeek(d) {
 	return Math.ceil((oneJan.getDay() + 1 + numberOfDays) / 7);
 }
 
-// determines if given date is a workday
+// determines if the given date is a workday
 function isWorkDay(d) {
-	return isWeekDay(d || todaysDate) && !isHoliday(d || todaysDate);
+	return isWeekDay(d) && !isFreeDay(d);
 }
 
-// determines if given date is a weekday
+// determines if the given date is a weekday
 function isWeekDay(d) {
-	return ((d.getDay() > 0) // day 0 is sunday
-		&& (d.getDay() < 6)); // day 6 is saturday
+	return (((d || todaysDate).getDay() > 0) // day 0 is sunday
+		&& ((d || todaysDate).getDay() < 6)); // day 6 is saturday
 }
 
-// determines if given date is a holiday
+// determines if the given date is a free day (sick, vacation or holiday)
+function isFreeDay(d) {
+	return isSickDay(d) || isVacation(d) || isHoliday(d);
+}
+
+// determines if the given date is a sick day
+function isSickDay(d) {
+	return checkFreeDay(d, FreeDays.SICKDAY);
+}
+
+// determines if the given date is a vacation
+function isVacation(d) {
+	return checkFreeDay(d, FreeDays.VACATION);
+}
+
+// determines if the given date is a holiday
 function isHoliday(d) {
-	let isAHoliday = false;
-    for (let holiday of holidays) {      
-        if (holiday.end == null) {
-            if (sameDay(d, df.date(holiday.start))) {
-                isAHoliday = true;
-                break;
-            }
-        } else {
-            let start = df.date(holiday.start);
-            let end = df.date(holiday.end);
-            if (d.getTime() >= start.getTime() && d.getTime() <= end.getTime()) {
-                isAHoliday = true;
-                break;
-            }
-        }
+	return checkFreeDay(d, FreeDays.HOLIDAY);
+}
+
+// checks if the given date is a free day of the provided type
+function checkFreeDay(d, freeDay) {
+	let isAFreeDay = false;
+    for (let entry of freeDays) {   
+		if (entry.type === freeDay) {
+			if (entry.end == null) {
+				if (sameDay((d || todaysDate), df.date(entry.start))) {
+					isAFreeDay = true;
+					break;
+				}
+			} else {
+				let start = df.date(entry.start);
+				let end = df.date(entry.end);
+				if ((d || todaysDate).getTime() >= start.getTime() && (d || todaysDate).getTime() <= end.getTime()) {
+					isAFreeDay = true;
+					break;
+				}
+			}
+		}
     }
-    return isAHoliday;
+    return isAFreeDay;
 }
 
 // creates a new table with times to select
@@ -730,6 +802,12 @@ async function createNotification(date, reason, workDayState) {
 	notif.userInfo = {"workDay": workDayState}
 	notif.setTriggerDate(date);  
 	await notif.schedule();
+}
+
+// removes pending and delivered notifications
+async function removeNotifs() {	
+	await Notification.removePending((await Notification.allPending()).filter(notif => notif.threadIdentifier === Script.name()).map(notif => notif.identifier));
+	await Notification.removeDelivered((await Notification.allDelivered()).filter(notif => notif.threadIdentifier === Script.name()).map(notif => notif.identifier));
 }
 
 // calls the shortcut with the name hs: shortcut to got back to the homescreen
