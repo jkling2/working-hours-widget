@@ -83,10 +83,10 @@ Working hours are only tracked on work days. Work days are days that are neither
 ```json
 [
   { 
-    "type": "name of vacation",
+    "type": "type name, e.g. holiday",
     "name": "name of holiday",
-    "start": "dd.MM.JJJJ",
-    "end": "dd.MM.JJJJ"
+    "start": "DD.MM.JJJJ",
+    "end": "DD.MM.JJJJ"
   },
   ...
 ]
@@ -106,11 +106,12 @@ For providing holidays and vacations use the script `working-hours-free-days.js`
 
 The script (`working-hours-export.js`) for exporting your working hours currently only supports exporting the data for a single month. By default the current month will be exported, however, see [Export Config Parameter](https://github.com/jkling2/working-hours-widget#export-1) for individualizing the export.
 
-The script generates a csv file containing the following columns: the date, the start time, the finiah time, the break duration and the hours worked. This data is generated for each day of the month, not just the working days. At the end, a final summary row is added: it provides the amount of working days for the month, the average starting time, the average finish time, the average break duration, the average hours worked per day, and the total hours worked per month.
+The script generates a csv file containing the following columns: the date, the start time, the finiah time, the break duration, the hours worked and an information column. This data is generated for each day of the month, not just the working days. At the end, a final summary row is added: it provides the amount of working days for the month, the average starting time, the average finish time, the average break duration, the average hours worked per day, and the total hours worked per month.
 
 ### Planned Features
 
 * export working hours for multiple month, or even a year
+* provide additional statistics about working hours
 
 ## Requirements
 
