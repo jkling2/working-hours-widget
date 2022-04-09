@@ -44,13 +44,13 @@ See the config parameters `startOfDayNotifTime`, `breakOfDayNotifTime`, `endOfDa
 You can either long-press or click the notification to provide either your start time, break duration or finish time, depending on the notification you are interacting with.
 The resulting UIs (via long-press or click) are identical. Furthermore, the structure of the UIs for providing either your start time, break duration or finish time are identical. A header informs you about the data you are changing. After that a few options are provided. Or you can enter an individual start/finish time or break duration. Individual start/finish time are checked for the correct format before they can be saved.
 
-<img src="./img/notification_start_long_press.PNG" width="180" height="220">&nbsp;&nbsp;
+<img src="./img/notification_start_long_press.PNG" width="180" height="200">&nbsp;&nbsp;
 <img src="./img/notification_start.png" width="180" height="360">&nbsp;&nbsp;
 <img src="./img/notification_start_individual_time.PNG" width="180" height="360">&nbsp;&nbsp;
 <img src="./img/notification_start_individual_time_wrong_format.PNG" width="180" height="360">
 
-<img src="./img/notification_finish_long_press.PNG" width="180" height="220">&nbsp;&nbsp;
-<img src="./img/notification_finish_long_press_individual_time.PNG" width="180" height="220">
+<img src="./img/notification_finish_long_press.PNG" width="180" height="200">&nbsp;&nbsp;
+<img src="./img/notification_finish_long_press_individual_time.PNG" width="180" height="200">
 
 <img src="./img/notification_break_long_press.png" width="180" height="220">&nbsp;&nbsp;
 <img src="./img/notification_break_long_press_individual_time_h.PNG" width="180" height="220">&nbsp;&nbsp;
@@ -94,13 +94,15 @@ Working hours are only tracked on work days. Work days are days that are neither
 
 Sick days can be entered via the update functionality (see [Tracker via Update](https://github.com/jkling2/working-hours-widget#via-update)).
 
-<img src="./img/free-days.PNG" width="180" height="220">
+<img src="./img/free-days.png" align="right" width="180" height="190">
+
 For providing holidays and vacations use the script `working-hours-free-days.js`. It provides a UI for entering holidays and vacations. By clicking on the respective row, the holiday/vacation name, start and end date can be provided. The name and start fields are required. The end date is optional and can be deleted once entered (press :x:). It has to be after the start date. If this is not the case or the required fields are not filled, the entry cannot be saved. This is also controlled by the script. The message `not enough data provided` or `provided start date is after end date` is displyed in red. Once the entry was saved to file, the UI informs you about it.
 
-<img src="./img/free-days_enter-name.PNG" width="180" height="360">&nbsp;&nbsp;
-<img src="./img/free-days_enter-start.PNG" width="180" height="360">&nbsp;&nbsp;
-<img src="./img/free-days_save-failed.PNG" width="180" height="360">&nbsp;&nbsp;
-<img src="./img/free-days_saved.PNG" width="180" height="360">
+
+<img src="./img/free-days_enter-name.png" width="180" height="360">&nbsp;&nbsp;
+<img src="./img/free-days_enter-start.png" width="180" height="360">&nbsp;&nbsp;
+<img src="./img/free-days_save-failed.png" width="180" height="360">&nbsp;&nbsp;
+<img src="./img/free-days_saved.png" width="180" height="360">
 
 ### Export
 
