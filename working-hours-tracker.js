@@ -411,7 +411,8 @@ function getDataForPastNDays(n) {
 // determines the working days for the current month
 function determineWorkDaysMonth() {
   let workDaysMonth = 0;
-  let lastDayMonth = df.date(df.string(todaysDate));
+  let lastDayMonth = df.date(df.string(todaysDate));	
+  lastDayMonth.setDate(1);
   lastDayMonth.setMonth(lastDayMonth.getMonth() + 1);
   lastDayMonth.setDate(0);
   let daysMonth = lastDayMonth.getDate();
@@ -437,13 +438,13 @@ function hasCurrentWorkingHours() {
 
 // determines the hours worked on the current day
 function getCurrentWorkingHours() {
-	return (diffMinutes(getDateTime(dataToday.start), (dataToday.end !== DEFAULT_TIME ? getDateTime(dataToday.end) : roundDateDownToQuarterMinutes(new Date()))) - dataToday.breakDuration) / 60;
+	return Math.max(0, (diffMinutes(getDateTime(dataToday.start), (dataToday.end !== DEFAULT_TIME ? getDateTime(dataToday.end) : roundDateDownToQuarterMinutes(new Date()))) - dataToday.breakDuration) / 60);
 }
 
 // determines the difference in minutes between 2 dates
 function diffMinutes(first, second) {
 	var diff =((second.getTime() - first.getTime()) / 1000) / 60;
-	return Math.abs(Math.round(diff));
+	return Math.round(diff);
 }
 
 // determines if two dates are on the same day

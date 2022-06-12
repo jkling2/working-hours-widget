@@ -12,7 +12,6 @@ const mailAddress = "jasmin.kling93@gmail.com";
 
 // sets the month for which data is exported - default is current month - valid numbers from 0 to 11
 const monthToExportNr = new Date().getMonth();
-
 // specifies the file name containing the working hours
 const workingHoursFileName = "workinghours.json";
 
@@ -53,6 +52,7 @@ let endMonth = 0;
 let breakMonth = 0;
 
 let lastDayMonth = monthToExport;
+lastDayMonth.setDate(1);
 lastDayMonth.setMonth(lastDayMonth.getMonth() + 1);
 lastDayMonth.setDate(0);
 let daysMonth = lastDayMonth.getDate();
