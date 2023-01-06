@@ -30,12 +30,11 @@ table.present();
 
 async function populateTable(isHoliday) {
 	table.removeAllRows();
-	
 	// chose between holiday and vacation
 	let row = new UITableRow();	
 	let cell = row.addButton(isHoliday ? "Provide Vacation" : "Provide Holiday");
 	cell.onTap = () => {
-		entry.type = isHoliday ? FreeDays.HOLIDAY : FreeDays.VACATION;
+		entry.type = isHoliday ? FreeDays.VACATION : FreeDays.HOLIDAY;	
 		console.log(JSON.stringify(entry));
 		populateTable(!isHoliday);
 		table.reload();
@@ -102,7 +101,7 @@ async function populateTable(isHoliday) {
 	table.addRow(row);
 		
 	let correctData = entry.name && entry.start;
-	let startBeforeEnd = !entry.end || (entry.start && (df.date(entry.start) <= df.date(entry.end)));
+	let startBeforeEnd = !entry.end || (entry.start && df.date(entry.start) <= df.date(entry.end));
 	// row to save data
 	row = new UITableRow();
 	row.height = 60;

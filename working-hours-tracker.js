@@ -288,7 +288,8 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
     let hoursMonth = determineWorkDaysMonth() * honestDayWork;
 	let hoursWorkedWeek = hasCurrentWorkingHours() ? getCurrentWorkingHours() : 0;
 	let hoursWorkedPastNDays = 0;
-	let pastWeek = getDataForPastNDays(5);
+	let n = 5;
+	let pastWeek = getDataForPastNDays(n);
 	for (let pastDay of pastWeek) {
         let workingHoursPastDay = determineWorkingHours(pastDay);
 		hoursWorkedPastNDays += workingHoursPastDay;
@@ -296,7 +297,7 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 			hoursWorkedWeek += workingHoursPastDay;
 		}
 	}  
-    hoursWorkedPastNDays = hoursWorkedPastNDays / 5;
+    hoursWorkedPastNDays = hoursWorkedPastNDays / n;
 	
 	// display calculated work hours
     let workingHoursMonthStack= widget.addStack();
@@ -310,11 +311,12 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 	let workingHoursWeekStack= widget.addStack();
 	workingHoursWeekStack.addText(`KW${getWeek(todaysDate)}: `);
 	let workingHoursWeekText = workingHoursWeekStack.addText(`${hoursWorkedWeek}h`);  
-    if (hoursWorkedWeek >= 5 * honestDayWork) {
+	let hoursWeek = determineWorkDaysWeek() * honestDayWork;
+	if (hoursWorkedWeek >= hoursWeek) {
         workingHoursWeekText.textColor = Color.blue();
     }
     let pastNDaysStack= widget.addStack();
-	pastNDaysStack.addText("-5d: ");  
+	pastNDaysStack.addText(`-${n}d: `);  
 	let pastNDaysText = pastNDaysStack.addText(`${hoursWorkedPastNDays}h/d`);  
     pastNDaysText.textColor = hoursWorkedPastNDays < honestDayWork ? Color.orange() : Color.blue();
 	
@@ -424,6 +426,22 @@ function determineWorkDaysMonth() {
     }   
   }
   return workDaysMonth;
+}
+
+// determines the working days for the current week
+function determineWorkDaysWeek() {
+  let workDaysWeek = 0;
+  let dt = df.date(df.string(todaysDate));
+  let day = dt.getDay()
+  let diff = dt.getDate() - day + (day === 0 ? -6 : 1);
+  for (var i = diff; i < diff + 7; i++) {    
+    var date = df.date(df.string(todaysDate));
+    date.setDate(i);
+    if (isWorkDay(date)) {
+       workDaysWeek++;
+    }   
+  }
+  return workDaysWeek;
 }
 
 // determines the hours worked on a completed day
