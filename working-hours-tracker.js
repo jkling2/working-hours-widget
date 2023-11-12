@@ -52,6 +52,9 @@ const todaysDate = df.date(df.string(new Date()));
 const dataToday = (data.length > 0 && sameDay(todaysDate, df.date(data[0].date))) ? data[0] : JSON.parse("{}");
 const freeDaysFile = fm.joinPath(dir, "freeDays.json");
 const freeDays = fm.fileExists(freeDaysFile) ? JSON.parse(fm.readString(freeDaysFile)) : JSON.parse('[]');
+const bookingAccountsFile = fm.joinPath(dir, "bookingAccounts.json");
+const bookingAccounts = fm.fileExists(bookingAccountsFile) ? JSON.parse(fm.readString(bookingAccountsFile)) : JSON.parse('[]');
+
 
 let ui = new UITable();
 ui.showSeparators = true;	
@@ -127,6 +130,40 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
 		}
 	};
 	ui.addRow(row);
+	
+	// row as spacer
+	row = new UITableRow();
+	row.height = 10;
+	ui.addRow(row);
+	
+	// add booking account per line
+	for (let account of bookingAccounts) {
+		row = new UITableRow();
+		row.height = 30;
+		row.addText(`${account.main}.${account.sub}`).centerAligned();
+		row.dismissOnSelect = false;
+		row.onSelect = () => {
+			let entry = JSON.parse("{}");
+			entry.accountMain = account.main;
+			entry.accountSub = account.sub;
+			if (JSON.stringify(dataToday.bookings) === undefined) {
+				// create empty item
+				dataToday.bookings = JSON.parse("[]")
+			} else {
+				// check if selected item already exists and use it
+				for (bookingIdx in dataToday.bookings) {
+					let bookingEntry = dataToday.bookings[bookingIdx]
+					if (bookingEntry.accountMain === account.main && bookingEntry.accountSub === account.sub) {					
+						entry = bookingEntry;
+						dataToday.bookings.splice(bookingIdx, 1);
+						break;
+					}
+				}
+			}
+			updateBookingTable(entry);
+		}
+		ui.addRow(row);
+	}
 	
 	await ui.present();
 	backToHomeScreen(shortcutNameHomeScreen);
@@ -303,8 +340,7 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
     let workingHoursMonthStack= widget.addStack();
     let workingHoursMonthText = workingHoursMonthStack.addText(`${todaysDate.toLocaleString('default', { month: 'short' })}: `);  
     workingHoursMonthText.minimumScaleFactor = 0.7;
-	workingHoursMonthText = workingHoursMonthStack.addText(`${hoursWorkedMonth}/${hoursMonth}h`);  
-    workingHoursMonthText.minimumScaleFactor = 0.7;
+	workingHoursMonthText = workingHoursMonthStack.addText(`${hoursWorkedMonth}/${hoursMonth}h`);
 	if (hoursWorkedMonth >= hoursMonth) {
         workingHoursMonthText.textColor = Color.blue();
     }
@@ -368,6 +404,16 @@ if (isWorkDay() && args.queryParameters && args.queryParameters.update) {
     	let currentWorkingHoursText = contentStack.addText(currentWorkingHours.toString());  
         currentWorkingHoursText.textColor = textColor;  
         currentWorkingHoursText.shadowRadius = 0.5;
+		currentWorkingHoursText.minimumScaleFactor = 0.9;
+		// display booked working hours
+		let bookedWorkingHours = getBookedWorkingHours();
+		if (bookedWorkingHours > 0) {
+			contentStack.addSpacer(5);
+        	contentStack.addText("|");
+        	contentStack.addSpacer(5);
+			let bookedWorkingHoursText =  contentStack.addText(bookedWorkingHours.toString());
+			bookedWorkingHoursText.minimumScaleFactor = 0.4;
+		}
     } else {
         contentStack.addText("");
     }
@@ -457,6 +503,18 @@ function hasCurrentWorkingHours() {
 // determines the hours worked on the current day
 function getCurrentWorkingHours() {
 	return Math.max(0, (diffMinutes(getDateTime(dataToday.start), (dataToday.end !== DEFAULT_TIME ? getDateTime(dataToday.end) : roundDateDownToQuarterMinutes(new Date()))) - dataToday.breakDuration) / 60);
+}
+
+// determines the booked hours worked on the current day
+function getBookedWorkingHours() {
+	// aggregate booking time
+	let currentBookedWorkingHours = 0;
+	if (JSON.stringify(dataToday.bookings) !== undefined) {
+		for (let bookingEntry of dataToday.bookings) {
+			currentBookedWorkingHours += bookingEntry.time;
+		}
+	}
+	return currentBookedWorkingHours;
 }
 
 // determines the difference in minutes between 2 dates
@@ -551,6 +609,84 @@ function checkFreeDay(d, freeDay) {
 		}
     }
     return isAFreeDay;
+}
+
+// creates a new table to enter time and comment for selected booking account
+function updateBookingTable(entry) {
+	ui.removeAllRows();
+	row = new UITableRow();
+	row.isHeader = true;
+	row.height = 60;
+	row.addText(`Enter booking information for ${entry.accountMain}.${entry.accountSub}`).centerAligned();
+	ui.addRow(row);
+	// row as spacer
+	row = new UITableRow();
+	row.height = 10;
+	ui.addRow(row);
+
+	// row for time
+	row = new UITableRow();
+	row.dismissOnSelect = false;
+	row.onSelect = () => alertForTime(entry);
+	cell = row.addButton("work time");
+	cell.onTap = () => alertForTime(entry);
+	if (entry.time) {
+		row.addText(`${entry.time} h`);
+	}
+	ui.addRow(row);
+
+	// row for comment
+	row = new UITableRow();
+	row.dismissOnSelect = false;
+	row.onSelect = () => alertForComment(entry);
+	cell = row.addButton("comment");
+	cell.onTap = () => alertForComment(entry);
+	if (entry.comment) {
+		row.addText(entry.comment);
+	}
+	ui.addRow(row);
+
+	// save data
+	row = new UITableRow();
+	row.height = 60;
+	cell = row.addButton("Save");
+	cell.dismissOnTap = true;
+	cell.centerAligned();
+	cell.onTap = () => {
+		dataToday.bookings.push(entry);
+		updateAndSave();
+	}
+	ui.addRow(row);
+
+	ui.reload();
+}
+
+async function alertForTime(entry) {
+	let time = entry.time;
+	let alert = new Alert();
+	alert.message = "Provide working time in hours!"
+	let numberTextField = time ? alert.addTextField("working time", `${time}`) : alert.addTextField("working time");
+	numberTextField.setDecimalPadKeyboard();
+	alert.addCancelAction("Cancel");
+	alert.addDestructiveAction("Save");
+	let presentedAlertIdx = await alert.presentAlert();
+	if (presentedAlertIdx >= 0) {
+		entry.time = parseFloat(alert.textFieldValue(0).replace(',', '.'));
+		updateBookingTable(entry);
+	}
+}
+
+async function alertForComment(entry) {
+	let comment = entry.comment;
+	let alert = new Alert();
+	comment ? alert.addTextField("comment", comment) : alert.addTextField("comment");
+	alert.addCancelAction("Cancel");
+	alert.addDestructiveAction("Save");
+	let presentedAlertIdx = await alert.presentAlert();
+	if (presentedAlertIdx >= 0) {
+		entry.comment = alert.textFieldValue(0);
+		updateBookingTable(entry);
+	}
 }
 
 // creates a new table with times to select
