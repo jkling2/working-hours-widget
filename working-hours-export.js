@@ -31,7 +31,7 @@ df.locale = locale;
 
 let monthToExport = df.date(df.string(new Date()));
 monthToExport.setMonth(monthToExportNr);
-const monthToExportStr = monthToExport.toLocaleString('default', { month: 'short' });
+const monthToExportStr = monthToExport.toLocaleString('default', { month: 'short' }) + monthToExport.toLocaleString('default', { year: 'numeric' })
 
 let fm = FileManager.iCloud();
 let dir = fm.joinPath(fm.documentsDirectory(), "working-hours");
